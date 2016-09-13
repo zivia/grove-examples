@@ -6,6 +6,7 @@
         "genome_lb": 0,
         "genome_ub": 127,
         "genome_mp": 0.1,
+        "genome_type": "int",
         "genome_names": [
             "Genome"
         ],

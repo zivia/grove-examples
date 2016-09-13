@@ -1,28 +1,44 @@
 import os
 import random
 
-from evolution import agent, ga, selection, crossover, mutation
+# If testing with local files, then include the following two lines. Otherwise ensure grove has been installed
+# by pip so that importing the following modules is possible.
+import sys
+sys.path.insert(0, '/Users/Zivia/Research/grove')
+
+from evolution.agent import Agent
+from evolution.ga import evolve
+from evolution.crossover import one_point
+from evolution.selection import tournament
+from evolution.mutation import gaussian
 from grammar.parse_tree import ParseTree
 from grove import config, logger
 
 
-class GESAgent(agent.Agent):
+class GESAgent(Agent):
 
     """
-    An agent targeted for GES.
+    An agent targeting GESwarm simulations. Such agents include a parse tree that represents a set of rules that are
+    used by the simulator to (hopefully) produce interesting collective behaviors.
     """
 
     grammar = None
 
     def __init__(self):
 
-        super(GESAgent, self).__init__()
+        super(GESAgent, self).__init__(genome=None)
 
         self.genome = [random.randint(lower, upper) for lower, upper in zip(self.genome_lb, self.genome_ub)]
         self.parse_tree = ParseTree(GESAgent.grammar, self.genome)
 
 
 def agent_init(population_size=None):
+
+    """
+    A function used by the genetic algorithm that initializes a population of agents.
+    :param population_size: The size of the population.
+    :return: A list of initialized agents, length equal to the population size.
+    """
 
     return [GESAgent() for _ in xrange(population_size)]
 
@@ -32,8 +48,8 @@ def pre_evaluation(agents=None):
     """
     Pre-evaluation function prepares agents for evaluation. In this case, a genome is used to generate a parse tree,
     which is used during evaluation.
-    :param agents: The population of agents to map the generation of parse trees over.
-    :return: The updated agents with generated parse trees.
+    :param agents: The list of agents to map the generation of parse trees over.
+    :return: The updated list of agents with generated parse trees.
     """
 
     for agent in agents:
@@ -72,7 +88,7 @@ def evaluation(payload=None):
         import thriftpy
 
         # Path to Thrift
-        thrift_path = '/Users/Zivia/Research/grove/examples/ges_lyssa/thrift/foraging.thrift'
+        thrift_path = '/Users/Zivia/Research/grove-examples/cpfa_ges/thrift/foraging.thrift'
 
         # Compile the Thrift and read the grammar.
         module_name = os.path.splitext(os.path.basename(thrift_path))[0] + '_thrift'
@@ -116,8 +132,8 @@ def post_evaluation(agents=None):
     """
     Post-evaluation function performs data collection and/or alters agents after evaluation. In this case, no action
     is needed, so the agents are simply returned.
-    :param agents: The population of agents.
-    :return: The population of agents.
+    :param agents: The list of agents.
+    :return: The list of agents.
     """
 
     return agents
@@ -129,7 +145,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description='grove')
-    parser.add_argument('-config', action='store', type=str, default='examples/ges_lyssa/grove-config.json')
+    parser.add_argument('-config', action='store', type=str, default='./cpfa_ges/grove-config.json')
     parser.add_argument('-p', '--population', action='store', type=int)
     parser.add_argument('-g', '--generations', action='store', type=int)
     parser.add_argument('-c', '--crossover_function', action='store', type=str, default='truncation')
@@ -154,7 +170,7 @@ if __name__ == "__main__":
     os.chdir(args.log_path)
 
     # Run the genetic algorithm.
-    ga.evolve(
+    evolve(
         population_size=args.population or config.grove_config['ga']['parameters']['population'],
         generations=args.generations or config.grove_config['ga']['parameters']['generations'],
         repeats=config.grove_config['ga']['parameters']['repeats'],
@@ -162,9 +178,9 @@ if __name__ == "__main__":
         pre_evaluation=pre_evaluation,
         evaluation=evaluation,
         post_evaluation=post_evaluation,
-        selection=selection.tournament(4, 5),
-        crossover=crossover.one_point(),
-        mutation=mutation.gaussian(),
+        selection=tournament(4, 5),
+        crossover=one_point(),
+        mutation=gaussian(),
         nodes=[],
         depends=[],
         debug=config.grove_config['debug']
