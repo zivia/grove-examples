@@ -1,0 +1,12 @@
+# Compiled Sources #
+*.pyc
+
+# Data #
+*.csv
+
+# Logs #
+*.log
+
+# OS Generated Files #
+*.DS_Store
+*.DS_Store?
