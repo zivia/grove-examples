@@ -43,6 +43,7 @@ def setup():
 
     return 0
 
+
 def agent_init(population_size=None):
 
     """
@@ -118,18 +119,6 @@ def evaluation(payload=None):
     return {'random_seed': seed, 'value': nest[0].food_count}
 
 
-def post_evaluation(agents=None):
-
-    """
-    Post-evaluation function performs data collection and/or alters agents after evaluation. In this case, no action
-    is needed, so the agents are simply returned.
-    :param agents: The list of agents.
-    :return: The list of agents.
-    """
-
-    return agents
-
-
 if __name__ == "__main__":
 
     # Parser for command line arguments.
@@ -165,17 +154,16 @@ if __name__ == "__main__":
         population_size=args.population or config.grove_config['ga']['parameters']['population'],
         generations=args.generations or config.grove_config['ga']['parameters']['generations'],
         repeats=config.grove_config['ga']['parameters']['repeats'],
-        depends=['/Users/Zivia/Research/cpfa_ges/thrift/foraging.thrift'],
+        depends=['/Users/Zivia/Research/grove-examples/cpfa_ges/thrift/foraging.thrift'],
         dest_path=os.path.expanduser('~'),
         setup=setup,
         agent_func=agent_init,
         pre_evaluation=pre_evaluation,
         evaluation=evaluation,
-        post_evaluation=post_evaluation,
+        post_evaluation=lambda agents: agents,
         selection=tournament(4, 5),
         crossover=one_point(),
         mutation=gaussian(),
         nodes=[],
-        depends=[],
         debug=config.grove_config['debug']
     )
