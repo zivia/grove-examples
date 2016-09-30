@@ -1,11 +1,6 @@
 import os
 import random
 
-# If testing with local files, then include the following two lines. Otherwise ensure grove has been installed
-# by pip so that importing the following modules is possible.
-import sys
-sys.path.insert(0, '/Users/Zivia/Research/grove')
-
 from evolution.agent import Agent
 from evolution.ga import evolve
 from evolution.crossover import one_point
@@ -31,6 +26,22 @@ class GESAgent(Agent):
         self.genome = [random.randint(lower, upper) for lower, upper in zip(self.genome_lb, self.genome_ub)]
         self.parse_tree = ParseTree(GESAgent.grammar, self.genome)
 
+
+def setup():
+
+    import os
+    import thriftpy
+
+    # Path to Thrift
+    thrift_path = './foraging.thrift'
+
+    # Compile the Thrift and read the grammar.
+    module_name = os.path.splitext(os.path.basename(thrift_path))[0] + '_thrift'
+
+    global grammar
+    grammar = thriftpy.load(thrift_path, module_name=module_name)
+
+    return 0
 
 def agent_init(population_size=None):
 
@@ -69,62 +80,42 @@ def evaluation(payload=None):
     :return: The evaluation value determined by executing the evaluation function with the payload.
     """
 
-    import os
-    os.chdir('/Users/Zivia/Research/output/simulations')
+    from simulation.entity import SimAgent, Food, Nest
+    from simulation.environment import Environment
+    from simulation.simulation import Simulation
+    from simulation.utils import seed, rand
 
-    import traceback
+    import thriftpy.transport as tp
+    import thriftpy.protocol as pc
 
-    try:
+    transportIn = tp.TMemoryBuffer(payload)
+    protocolIn = pc.TBinaryProtocol(transportIn)
 
-        import sys
-        sys.path.append('/Users/Zivia/Research/grove')
+    global grammar
+    root = grammar.Root()
+    root.read(protocolIn)
 
-        from simulation.entity import SimAgent, Food, Nest
-        from simulation.environment import Environment
-        from simulation.simulation import Simulation
+    seed = random.randint(0, sys.maxint)
+    rand = random.Random(seed)
 
-        import thriftpy.transport as tp
-        import thriftpy.protocol as pc
-        import thriftpy
+    # Create the entities for the simulation.
+    agents = [SimAgent(position=(rand.randint(8, 11), rand.randint(8, 11))) for _ in xrange(5)]
+    nest = Nest(position=(8, 8), size=(4, 4))
+    food = [Food(position=(rand.choice([rand.randint(0, 7), rand.randint(12, 20)]), rand.choice([rand.randint(0, 7), rand.randint(12, 20)]))) for _ in xrange(80)]
 
-        # Path to Thrift
-        thrift_path = '/Users/Zivia/Research/grove-examples/cpfa_ges/thrift/foraging.thrift'
+    entities = agents + [nest] + food
 
-        # Compile the Thrift and read the grammar.
-        module_name = os.path.splitext(os.path.basename(thrift_path))[0] + '_thrift'
-        thrift = thriftpy.load(thrift_path, module_name=module_name)
+    # Create the environment for the simulation.
+    env = Environment()
 
-        transportIn = tp.TMemoryBuffer(payload)
-        protocolIn = pc.TBinaryProtocol(transportIn)
-        root = thrift.Root()
-        root.read(protocolIn)
+    # Create and execute the simulation.
+    sim = Simulation(environment=env, entities=entities, parse_tree=root)
+    sim.execute()
 
-        seed = random.randint(0, sys.maxint)
-        rand = random.Random(seed)
+    # Get the food tags collected, and return as the evaluation score.
+    nest = filter(lambda x: isinstance(x, Nest), sim.entities)
 
-        # Create the entities for the simulation.
-        agents = [SimAgent(position=(rand.randint(8, 11), rand.randint(8, 11))) for _ in xrange(5)]
-        nest = Nest(position=(8, 8), size=(4, 4))
-        food = [Food(position=(rand.choice([rand.randint(0, 7), rand.randint(12, 20)]), rand.choice([rand.randint(0, 7), rand.randint(12, 20)]))) for _ in xrange(80)]
-
-        entities = agents + [nest] + food
-
-        # Create the environment for the simulation.
-        env = Environment()
-
-        # Create and execute the simulation.
-        sim = Simulation(environment=env, entities=entities, parse_tree=root)
-        sim.execute()
-
-        # Get the food tags collected, and return as the evaluation score.
-        nest = filter(lambda x: isinstance(x, Nest), sim.entities)
-
-        return {'random_seed': seed, 'value': nest[0].food_count}
-
-    except Exception:
-
-        print traceback.format_exc()
-        return traceback.format_exc()
+    return {'random_seed': seed, 'value': nest[0].food_count}
 
 
 def post_evaluation(agents=None):
@@ -174,6 +165,9 @@ if __name__ == "__main__":
         population_size=args.population or config.grove_config['ga']['parameters']['population'],
         generations=args.generations or config.grove_config['ga']['parameters']['generations'],
         repeats=config.grove_config['ga']['parameters']['repeats'],
+        depends=['/Users/Zivia/Research/cpfa_ges/thrift/foraging.thrift'],
+        dest_path=os.path.expanduser('~'),
+        setup=setup,
         agent_func=agent_init,
         pre_evaluation=pre_evaluation,
         evaluation=evaluation,
