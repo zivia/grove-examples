@@ -4,7 +4,7 @@ import random
 from evolution.agent import Agent
 from evolution.ga import evolve
 from evolution.crossover import one_point
-from evolution.selection import tournament
+from evolution.selection import truncation
 from evolution.mutation import gaussian
 from grammar.parse_tree import ParseTree
 from grove import config, logger
@@ -84,8 +84,9 @@ def evaluation(payload=None):
     from simulation.entity import SimAgent, Food, Nest
     from simulation.environment import Environment
     from simulation.simulation import Simulation
-    from simulation.utils import seed, rand
+    from simulation.utils import rand, seed
 
+    import sys
     import thriftpy.transport as tp
     import thriftpy.protocol as pc
 
@@ -99,6 +100,11 @@ def evaluation(payload=None):
     seed = random.randint(0, sys.maxint)
     rand = random.Random(seed)
 
+    # If the parse tree contains an empty ruleset, then no need to evaluate it.
+    if not root.rules:
+
+        return {'random_seed': seed, 'value': 0}
+
     # Create the entities for the simulation.
     agents = [SimAgent(position=(rand.randint(8, 11), rand.randint(8, 11))) for _ in xrange(5)]
     nest = Nest(position=(8, 8), size=(4, 4))
@@ -110,8 +116,8 @@ def evaluation(payload=None):
     env = Environment()
 
     # Create and execute the simulation.
-    sim = Simulation(environment=env, entities=entities, parse_tree=root)
-    sim.execute()
+    sim = Simulation(duration=10000, environment=env, entities=entities, parse_tree=root)
+    sim.execute_all()
 
     # Get the food tags collected, and return as the evaluation score.
     nest = filter(lambda x: isinstance(x, Nest), sim.entities)
@@ -161,9 +167,9 @@ if __name__ == "__main__":
         pre_evaluation=pre_evaluation,
         evaluation=evaluation,
         post_evaluation=lambda agents: agents,
-        selection=tournament(4, 5),
+        selection=truncation(0.2),
         crossover=one_point(),
         mutation=gaussian(),
-        nodes=[],
+        nodes=[str(node) for node in config.grove_config['ga']['nodes']],
         debug=config.grove_config['debug']
     )
