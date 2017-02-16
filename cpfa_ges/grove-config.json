@@ -2,9 +2,9 @@
   "agent": {
     "name": "Agent",
     "GESAgent": {
-        "genome_len": 100,
+        "genome_len": 30,
         "genome_lb": 0,
-        "genome_ub": 127,
+        "genome_ub": 31,
         "genome_mp": 0.1,
         "genome_type": "int",
         "genome_names": [
@@ -17,12 +17,12 @@
   },
   "ga": {
     "nodes": [
-        "*"
+
     ],
     "parameters": {
         "population": 60,
-        "generations": 30,
-        "repeats": 10,
+        "generations": 40,
+        "repeats": 5,
         "agent_type": "GESAgent",
         "evaluation_func": "",
         "selection_func": "",
@@ -31,10 +31,12 @@
     }
   },
   "data": {
-      "collection_type": "mongo"
+      "collection_type": "mongo",
+      "mongo": {
+        "uri": "mongodb://zivia:checkmeout@ds023465.mlab.com:23465/grove"
+      }
   },
   "logging": {
-      "grammar": false,
       "evolution": true,
       "selection": true,
       "crossover": true,
