@@ -35,7 +35,7 @@ def setup():
     # Path to Thrift
     thrift_path = './foraging.thrift'
 
-    # Compile the Thrift and read the grammar.
+    # Compile the grammar into a module.
     module_name = os.path.splitext(os.path.basename(thrift_path))[0] + '_thrift'
 
     global grammar
@@ -76,7 +76,8 @@ def evaluation(payload=None):
 
     """
     Evaluation function that executes a simulation with the specified payload. In this case the payload is a serialized
-    parse tree that defines the legal transformation that can take place in the dynamic state machine.
+    parse tree that defines the possible transformations that can take place in the dynamic state machine. This function
+    is executed across the cluster.
     :param payload: The payload (serialized parse tree) to evaluate.
     :return: The evaluation value determined by executing the evaluation function with the payload.
     """
@@ -116,7 +117,7 @@ def evaluation(payload=None):
     env = Environment()
 
     # Create and execute the simulation.
-    sim = Simulation(duration=10000, environment=env, entities=entities, parse_tree=root)
+    sim = Simulation(duration=2000, environment=env, entities=entities, parse_tree=root)
     sim.execute_all()
 
     # Get the food tags collected, and return as the evaluation score.
