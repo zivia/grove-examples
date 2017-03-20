@@ -33,7 +33,7 @@ def setup():
     import thriftpy
 
     # Path to Thrift
-    thrift_path = './foraging.thrift'
+    thrift_path = './cpfa_ges/thrift/foraging.thrift'
 
     # Compile the grammar into a module.
     module_name = os.path.splitext(os.path.basename(thrift_path))[0] + '_thrift'
@@ -139,7 +139,6 @@ if __name__ == "__main__":
     parser.add_argument('-m', '--mutation_function', action='store', type=str, default='one_point')
     parser.add_argument('-s', '--selection_function', action='store', type=str, default='gaussian')
     parser.add_argument('-b', '--grammar', action='store', type=str)
-    parser.add_argument('-l', '--log_path', action='store', type=str)
     args = parser.parse_args()
 
     # Load the grammar file.
@@ -151,10 +150,11 @@ if __name__ == "__main__":
     config.load_config(args.config)
 
     # Initialize the grove logger.
-    logger.init_logger(args.log_path)
+    # logger.init_logger(config.grove_config['logging']['path'])
+    logger.init_logger()
 
     # Change the current directory, for logging purposes.
-    os.chdir(args.log_path)
+    # os.chdir(args.log_path)
 
     # Run the genetic algorithm.
     evolve(
